@@ -1,103 +1,87 @@
-import Image from "next/image";
+import Link from "next/link";
+import { ActivityItem } from "@/components/activity-item";
+import { LogButton } from "@/components/log-button";
+import { clearNextStep, markFollowedUp } from "@/lib/actions";
+import { formatDay, isoDate } from "@/lib/dates";
+import { todayData } from "@/lib/queries";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function TodayPage() {
+  const today = isoDate();
+  const { due, inbound, recent } = await todayData(today);
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="space-y-8">
+      <h1 className="h1">Today</h1>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      <section className="space-y-2">
+        <h2 className="h2">Next steps due ({due.length})</h2>
+        {due.length === 0 ? (
+          <p className="text-sm text-stone-500">Nothing due. Set a next step when you log an activity and it shows up here on its date.</p>
+        ) : (
+          <ul className="card divide-y divide-stone-100 py-1">
+            {due.map((c) => (
+              <li key={c.id} className="flex flex-wrap items-center gap-3 py-2">
+                <div className="min-w-0 flex-1 text-sm">
+                  <Link href={`/contacts/${c.id}`} className="font-medium hover:underline">
+                    {c.name}
+                  </Link>
+                  {c.company && <span className="text-stone-500"> · {c.company}</span>}
+                  <div className="text-stone-600">{c.nextStep || "Follow up"}</div>
+                </div>
+                <span className={`text-xs ${c.nextStepDate! < today ? "font-medium text-red-600" : "text-stone-500"}`}>
+                  {c.nextStepDate! < today ? `Overdue · ${formatDay(c.nextStepDate!)}` : "Today"}
+                </span>
+                <LogButton contactId={c.id} label="Log" />
+                <form action={clearNextStep.bind(null, c.id)}>
+                  <button className="btn">Done</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="h2">Inbound to follow up ({inbound.length})</h2>
+        {inbound.length === 0 ? (
+          <p className="text-sm text-stone-500">No open inbound. Logging an outbound reply to someone clears theirs automatically.</p>
+        ) : (
+          <ul className="card divide-y divide-stone-100 py-1">
+            {inbound.map(({ activity, contactName }) => (
+              <ActivityItem
+                key={activity.id}
+                activity={activity}
+                contactName={contactName}
+                actions={
+                  <div className="flex gap-2">
+                    <LogButton contactId={activity.contactId} direction="outbound" label="Reply" />
+                    <form action={markFollowedUp.bind(null, activity.id)}>
+                      <button className="btn">Dismiss</button>
+                    </form>
+                  </div>
+                }
+              />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="h2">Recent activity</h2>
+        {recent.length === 0 ? (
+          <p className="text-sm text-stone-500">
+            Nothing logged yet. Press <kbd className="pill">L</kbd> to log a touch, or <Link href="/import" className="btn-link">import your spreadsheet</Link>.
+          </p>
+        ) : (
+          <ul className="card divide-y divide-stone-100 py-1">
+            {recent.map(({ activity, contactName }) => (
+              <ActivityItem key={activity.id} activity={activity} contactName={contactName} />
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

@@ -1,36 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Generative Mind CRM
 
-## Getting Started
+A small single-user CRM for logging outbound and inbound activity, built in phases from the
+[CRM plan](https://claude.ai/code/artifact/435cf43a-f8f6-4558-86da-fdc0c7c4e8a4). This repo covers
+Phase 1 (foundation and spreadsheet import) and Phase 2 (daily logging).
 
-First, run the development server:
+## What's here
 
-```bash
+- **Today**: next steps due or overdue, inbound activity waiting on a follow-up, recent activity.
+- **Quick log**: press `L` anywhere (or the Log activity button) to record a touch. Typing a name that
+  doesn't exist creates the contact. Logging an outbound touch clears that contact's open inbound items.
+- **Contacts and companies**: search, filter by source, edit details, full activity timeline per contact.
+  A contact's source is set automatically from its first logged touch.
+- **Import**: upload a CSV exported from the spreadsheets, match columns, preview, import. Contacts are
+  matched by email and only blank fields are filled, so re-importing is safe.
+
+## Stack
+
+Next.js 15 (App Router) · TypeScript · Tailwind · Postgres via Drizzle ORM · single-password sign-in
+with a signed session cookie.
+
+## Run locally
+
+```sh
+cp .env.example .env.local   # then fill in the values
+npm install
+npm run db:migrate
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`npm test` runs the unit tests; `npm run build` checks types and builds.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy (Vercel + Supabase)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Create a Supabase project and copy its Postgres connection string (the transaction pooler URL works).
+2. Import this repo in Vercel and set `DATABASE_URL`, `APP_PASSWORD`, `AUTH_SECRET`
+   (`openssl rand -base64 32`), and optionally `APP_TIMEZONE` (defaults to `America/New_York`).
+3. Run `DATABASE_URL=... npm run db:migrate` once from your machine to create the tables.
 
-## Learn More
+## Schema changes
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Edit `src/db/schema.ts`, run `npm run db:generate` to write a migration into `drizzle/`, then
+`npm run db:migrate`.
